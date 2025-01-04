@@ -12,7 +12,7 @@ func main() {
 
 	time.Sleep(time.Second)
 
-	// 创建客户端实例
+	// 创建
 	conn, err := net.Dial("tcp", "0.0.0.0:8999")
 	if err != nil {
 		fmt.Println("client start err, exit!")
