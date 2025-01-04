@@ -10,7 +10,7 @@ import (
 
 func main() {
 	//创建一个server 服务器
-	server := znet.NewServer("zinx-server")
+	server := znet.NewServer("zinx-server v0.1")
 	//启动server 服务器
 	server.Serve()
 }
