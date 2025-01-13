@@ -50,7 +50,7 @@ func (c *Connection) StartReader() {
 	}
 }
 
-// 启动链接
+// 启动链接 读写分离
 func (c *Connection) Start() {
 	fmt.Println("connID=", c.ConnID, " start")
 
