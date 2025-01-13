@@ -3,9 +3,9 @@ package znet
 import "Zinx/zinx/ziface"
 
 type Request struct {
-	//已经和客户端建立的链接
+	// 已经和客户端建立的链接
 	conn ziface.IConnection
-	//客户端请求的数据
+	// 客户端请求的数据
 	data []byte
 }
 

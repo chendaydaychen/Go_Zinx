@@ -1,6 +1,7 @@
 package znet
 
 import (
+	"Zinx/zinx/utils"
 	"Zinx/zinx/ziface"
 	"fmt"
 	"net"
@@ -8,15 +9,22 @@ import (
 
 // iServer接口实现 定义一个Server的服务
 type Server struct {
-	Name    string         //服务器的名称
-	Version string         //服务器版本
-	IP      string         //服务器监听的地址
-	Port    int            //服务器监听端口
+	Name    string         // 服务器的名称
+	Version string         // 服务器版本
+	IP      string         // 服务器监听的地址
+	Port    int            // 服务器监听端口
 	Router  ziface.IRouter // 路由
 }
 
 // 启动server的服务功能
 func (s *Server) Start() {
+	fmt.Printf("[Zinx] Server Name : %s, Version: %s, IP: %s, Port: %d",
+		utils.GlobalObject.Name,
+		utils.GlobalObject.Version,
+		utils.GlobalObject.Host,
+		utils.GlobalObject.TcpPort)
+	fmt.Println("服务器开始启动...")
+
 	go func() {
 		// 获取一个TCP的Addr
 		addr, err := net.ResolveTCPAddr(s.Version, fmt.Sprintf("%s:%d", s.IP, s.Port))
@@ -42,11 +50,11 @@ func (s *Server) Start() {
 				fmt.Println("listener.AcceptTCP err:", err)
 				continue
 			}
-			//处理新连接的业务方法和conn绑定
+			// 处理新连接的业务方法和conn绑定
 			dealConn := NewConnection(conn, cid, s.Router)
 			cid++
 
-			//启动
+			// 启动
 			dealConn.Start()
 		}
 	}()
@@ -77,10 +85,10 @@ func (s *Server) AddRouter(router ziface.IRouter) {
 // 初始化server的方法
 func NewServer(name string) ziface.Iserver {
 	return &Server{
-		Name:    name,
+		Name:    utils.GlobalObject.Name,
 		Version: "tcp4",
-		IP:      "0.0.0.0",
-		Port:    8999,
+		IP:      utils.GlobalObject.Host,
+		Port:    utils.GlobalObject.TcpPort,
 		Router:  nil,
 	}
 }
