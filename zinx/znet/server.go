@@ -2,28 +2,17 @@ package znet
 
 import (
 	"Zinx/zinx/ziface"
-	"errors"
 	"fmt"
 	"net"
 )
 
 // iServer接口实现 定义一个Server的服务
 type Server struct {
-	Name    string //服务器的名称
-	Version string //服务器版本
-	IP      string //服务器监听的地址
-	Port    int    //服务器监听端口
-}
-
-// 定义当前客户端所绑定的API，目前写死，以后优化
-func CallBackToClient(conn *net.TCPConn, data []byte, cnt int) error {
-	//回显
-	fmt.Println("[Zinx] CallBackToClient...")
-	if _, err := conn.Write(data[:cnt]); err != nil {
-		fmt.Println("write back buf err:", err)
-		return errors.New("write back buf err")
-	}
-	return nil
+	Name    string         //服务器的名称
+	Version string         //服务器版本
+	IP      string         //服务器监听的地址
+	Port    int            //服务器监听端口
+	Router  ziface.IRouter // 路由
 }
 
 // 启动server的服务功能
@@ -54,7 +43,7 @@ func (s *Server) Start() {
 				continue
 			}
 			//处理新连接的业务方法和conn绑定
-			dealConn := NewConnection(conn, cid, CallBackToClient)
+			dealConn := NewConnection(conn, cid, s.Router)
 			cid++
 
 			//启动
@@ -79,6 +68,12 @@ func (s *Server) Serve() {
 	select {}
 }
 
+func (s *Server) AddRouter(router ziface.IRouter) {
+	// 添加路由
+	s.Router = router
+	fmt.Println("router add success")
+}
+
 // 初始化server的方法
 func NewServer(name string) ziface.Iserver {
 	return &Server{
@@ -86,5 +81,6 @@ func NewServer(name string) ziface.Iserver {
 		Version: "tcp4",
 		IP:      "0.0.0.0",
 		Port:    8999,
+		Router:  nil,
 	}
 }
