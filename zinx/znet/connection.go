@@ -1,9 +1,10 @@
 package znet
 
 import (
-	"Zinx/zinx/utils"
 	"Zinx/zinx/ziface"
+	"errors"
 	"fmt"
+	"io"
 	"net"
 )
 
@@ -35,16 +36,45 @@ func (c *Connection) StartReader() {
 
 	for {
 		//读数据到buf,最大大数据为MaxPackageSize
-		buf := make([]byte, utils.GlobalObject.MaxPackageSize)
-		_, err := c.Conn.Read(buf)
+		// buf := make([]byte, utils.GlobalObject.MaxPackageSize)
+		// _, err := c.Conn.Read(buf)
+		// if err != nil {
+		// 	fmt.Println("read from client err:", err)
+		// 	continue
+		// }
+		// 创建一个拆包解包对象
+		dp := NewDataPack()
+
+		//读取head，八字节
+		headData := make([]byte, dp.GetHeadLen())
+		_, err := c.Conn.Read(headData)
 		if err != nil {
-			fmt.Println("read from client err:", err)
-			continue
+			fmt.Println("read head err:", err)
+			break
 		}
+
+		//拆包 得到msgId和msgLen，放到msg中
+		msg, err := dp.UnPack(headData)
+		if err != nil {
+			fmt.Println("unpack err:", err)
+			break
+		}
+
+		var data []byte
+		//根据datalen，再次读取data，放到msg中
+		if msg.GetMsgLen() > 0 {
+			data = make([]byte, msg.GetMsgLen())
+			if _, err := io.ReadFull(c.GetTCPConnection(), data); err != nil {
+				fmt.Println("read data err:", err)
+				break
+			}
+		}
+		msg.SetMsgData(data)
+
 		// 得到当前conn数据的Request请求数据
 		req := &Request{
 			conn: c,
-			data: buf,
+			msg:  msg,
 		}
 		// 执行注册路由方法
 		go func(request ziface.IRequest) {
@@ -96,7 +126,24 @@ func (c *Connection) RemoteAddr() net.Addr {
 	return c.Conn.RemoteAddr()
 }
 
-// 发送数据给远程客户端
-func (c *Connection) Send(data []byte) error {
+// 提供一个SendMessage方法，将我们要发送给客户端的数据先封包再发送
+func (c *Connection) SendMsg(msgId uint32, data []byte) error {
+	if c.isClosed {
+		return errors.New("connection closed when send msg")
+	}
+
+	//将data进行封包
+	dp := NewDataPack()
+	binaryMsg, err := dp.Pack(NewMsgPackage(msgId, data))
+	if err != nil {
+		fmt.Println("pack error msg id = ", msgId)
+		return errors.New("pack error msg")
+	}
+	//将data发送给客户端
+	if _, err := c.Conn.Write(binaryMsg); err != nil {
+		fmt.Println("write back buf err:", err)
+		return errors.New("conn Write error")
+	}
+
 	return nil
 }

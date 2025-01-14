@@ -56,12 +56,12 @@ func init() {
 	// 初始化GlobalObject变量，设置一些默认值
 	GlobalObject = &GlobalObj{
 		Name:           "ZinxServerApp",
-		Version:        "v0.4",
+		Version:        "v0.5",
 		TcpPort:        8999,
 		Host:           "0.0.0.0",
 		MaxConn:        1000,
 		MaxPackageSize: 4096,
 	}
-
-	GlobalObject.Reload()
+	//datapack_test暂时注释掉
+	//GlobalObject.Reload()
 }

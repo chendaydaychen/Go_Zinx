@@ -27,11 +27,11 @@ func (dp *DataPack) Pack(msg ziface.IMessage) ([]byte, error) {
 	//创建一个存放bytes字节的缓冲
 	dataBuff := bytes.NewBuffer([]byte{})
 	//将dataLen写进dataBuff中
-	if err := binary.Write(dataBuff, binary.LittleEndian, msg.GetMsgId()); err != nil {
+	if err := binary.Write(dataBuff, binary.LittleEndian, msg.GetMsgLen()); err != nil {
 		return nil, err
 	}
-	//将dataLen写进dataBuff中
-	if err := binary.Write(dataBuff, binary.LittleEndian, msg.GetMsgLen()); err != nil {
+	//将dataId写进dataBuff中
+	if err := binary.Write(dataBuff, binary.LittleEndian, msg.GetMsgId()); err != nil {
 		return nil, err
 	}
 	//将data写进dataBuff中
