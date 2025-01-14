@@ -49,7 +49,7 @@ func main() {
 	server := znet.NewServer("zinx-server v0.3")
 
 	//给当前zinx框架添加一个自定义的router
-	server.AddRouter(&PingRouter{})
+	server.AddRouter(0, &PingRouter{})
 	//启动server 服务器
 	server.Serve()
 }

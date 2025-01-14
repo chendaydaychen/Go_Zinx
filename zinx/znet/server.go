@@ -9,11 +9,11 @@ import (
 
 // iServer接口实现 定义一个Server的服务
 type Server struct {
-	Name    string         // 服务器的名称
-	Version string         // 服务器版本
-	IP      string         // 服务器监听的地址
-	Port    int            // 服务器监听端口
-	Router  ziface.IRouter // 路由 only one router
+	Name       string            // 服务器的名称
+	Version    string            // 服务器版本
+	IP         string            // 服务器监听的地址
+	Port       int               // 服务器监听端口
+	MsgHandler ziface.IMsgHandle // 当前server的消息管理模块，用来绑定msgid对应的处理业务Api关系
 }
 
 // 启动server的服务功能
@@ -51,7 +51,7 @@ func (s *Server) Start() {
 				continue
 			}
 			// 处理新连接的业务方法和conn绑定
-			dealConn := NewConnection(conn, cid, s.Router)
+			dealConn := NewConnection(conn, cid, s.MsgHandler)
 			cid++
 
 			// 启动
@@ -76,19 +76,19 @@ func (s *Server) Serve() {
 	select {}
 }
 
-func (s *Server) AddRouter(router ziface.IRouter) {
+func (s *Server) AddRouter(msgId uint32, router ziface.IRouter) {
 	// 添加路由
-	s.Router = router
+	s.MsgHandler.AddRouter(msgId, router)
 	fmt.Println("router add success")
 }
 
 // 初始化server的方法
 func NewServer(name string) ziface.Iserver {
 	return &Server{
-		Name:    utils.GlobalObject.Name,
-		Version: "tcp4",
-		IP:      utils.GlobalObject.Host,
-		Port:    utils.GlobalObject.TcpPort,
-		Router:  nil,
+		Name:       utils.GlobalObject.Name,
+		Version:    "tcp4",
+		IP:         utils.GlobalObject.Host,
+		Port:       utils.GlobalObject.TcpPort,
+		MsgHandler: NewMsgHandle(),
 	}
 }

@@ -9,21 +9,21 @@ import (
 )
 
 type Connection struct {
-	Conn     *net.TCPConn
-	ConnID   uint32
-	isClosed bool
-	ExitChan chan bool
-	Router   ziface.IRouter
+	Conn       *net.TCPConn
+	ConnID     uint32
+	isClosed   bool
+	ExitChan   chan bool
+	MsgHandler ziface.IMsgHandle
 }
 
 // 初始化链接模块的方法
-func NewConnection(conn *net.TCPConn, connID uint32, router ziface.IRouter) *Connection {
+func NewConnection(conn *net.TCPConn, connID uint32, msghandler ziface.IMsgHandle) *Connection {
 	c := &Connection{
-		Conn:     conn,               // 链接
-		ConnID:   connID,             // 连接ID
-		isClosed: false,              // 链接是否关闭
-		Router:   router,             // 路由
-		ExitChan: make(chan bool, 1), // 退出消息
+		Conn:       conn,               // 链接
+		ConnID:     connID,             // 连接ID
+		isClosed:   false,              // 链接是否关闭
+		MsgHandler: msghandler,         // 路由
+		ExitChan:   make(chan bool, 1), // 退出消息
 	}
 	return c
 }
@@ -76,15 +76,8 @@ func (c *Connection) StartReader() {
 			conn: c,
 			msg:  msg,
 		}
-		// 执行注册路由方法
-		go func(request ziface.IRequest) {
-			c.Router.PreHandle(request)
-			c.Router.Handle(request)
-			c.Router.PostHandle(request)
-		}(req)
-
 		// 将buf数据传递给router，调用路由方法，从路由中找到注册绑定的的Conn对应router
-
+		go c.MsgHandler.DoMsgHandler(req)
 	}
 }
 
