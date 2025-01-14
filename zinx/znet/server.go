@@ -13,7 +13,7 @@ type Server struct {
 	Version string         // 服务器版本
 	IP      string         // 服务器监听的地址
 	Port    int            // 服务器监听端口
-	Router  ziface.IRouter // 路由
+	Router  ziface.IRouter // 路由 only one router
 }
 
 // 启动server的服务功能
