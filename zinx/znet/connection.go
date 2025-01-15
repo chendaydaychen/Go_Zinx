@@ -7,16 +7,19 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"sync"
 )
 
 type Connection struct {
-	TcpServer  ziface.Iserver    // 链接对应的server
-	Conn       *net.TCPConn      // 链接
-	ConnID     uint32            // 连接ID
-	isClosed   bool              // 链接是否关闭
-	ExitChan   chan bool         // 退出信号(由Reader告知Writer)
-	msgChan    chan []byte       // 无缓冲消息队列
-	MsgHandler ziface.IMsgHandle // 消息处理模块
+	TcpServer    ziface.Iserver         // 链接对应的server
+	Conn         *net.TCPConn           // 链接
+	ConnID       uint32                 // 连接ID
+	isClosed     bool                   // 链接是否关闭
+	ExitChan     chan bool              // 退出信号(由Reader告知Writer)
+	msgChan      chan []byte            // 无缓冲消息队列
+	MsgHandler   ziface.IMsgHandle      // 消息处理模块
+	property     map[string]interface{} // 链接属性集合
+	propertyLock sync.RWMutex           // 保护链接属性的锁
 }
 
 // 初始化链接模块的方法
@@ -29,6 +32,7 @@ func NewConnection(server ziface.Iserver, conn *net.TCPConn, connID uint32, msgh
 		MsgHandler: msghandler,
 		ExitChan:   make(chan bool, 1),
 		msgChan:    make(chan []byte),
+		property:   make(map[string]interface{}),
 	}
 
 	// 将conn绑定到ConnMgr中
@@ -182,4 +186,36 @@ func (c *Connection) SendMsg(msgId uint32, data []byte) error {
 	//将data发送给msgChan
 	c.msgChan <- binaryMsg
 	return nil
+}
+
+// 设置链接属性
+func (c *Connection) SetProperty(key string, value interface{}) {
+	//写锁
+	c.propertyLock.Lock()
+	defer c.propertyLock.Unlock()
+
+	// 设置属性
+	c.property[key] = value
+}
+
+// 获取链接属性
+func (c *Connection) GetProperty(key string) (interface{}, error) {
+	// 读锁
+	c.propertyLock.RLock()
+	defer c.propertyLock.RUnlock()
+
+	// 获取属性
+	if value, ok := c.property[key]; ok {
+		return value, nil
+	} else {
+		return nil, errors.New("property not found")
+	}
+}
+
+// 销毁链接
+func (c *Connection) RemoveProperty(key string) {
+	c.propertyLock.Lock()
+	defer c.propertyLock.Unlock()
+
+	delete(c.property, key)
 }
