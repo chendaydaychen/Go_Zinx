@@ -46,7 +46,7 @@ func (pr *HelloZinxRouter) Handle(request ziface.IRequest) {
 
 func main() {
 	//创建一个server 服务器
-	server := znet.NewServer("zinx-server v0.6")
+	server := znet.NewServer("zinx-server v0.7")
 
 	//给当前zinx框架添加一个自定义的router
 	server.AddRouter(0, &PingRouter{})

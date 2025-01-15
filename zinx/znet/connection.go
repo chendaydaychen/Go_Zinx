@@ -9,21 +9,23 @@ import (
 )
 
 type Connection struct {
-	Conn       *net.TCPConn
-	ConnID     uint32
-	isClosed   bool
-	ExitChan   chan bool
-	MsgHandler ziface.IMsgHandle
+	Conn       *net.TCPConn      // 链接
+	ConnID     uint32            // 连接ID
+	isClosed   bool              // 链接是否关闭
+	ExitChan   chan bool         // 退出信号(由Reader告知Writer)
+	msgChan    chan []byte       // 无缓冲消息队列
+	MsgHandler ziface.IMsgHandle // 路由
 }
 
 // 初始化链接模块的方法
 func NewConnection(conn *net.TCPConn, connID uint32, msghandler ziface.IMsgHandle) *Connection {
 	c := &Connection{
-		Conn:       conn,               // 链接
-		ConnID:     connID,             // 连接ID
-		isClosed:   false,              // 链接是否关闭
-		MsgHandler: msghandler,         // 路由
-		ExitChan:   make(chan bool, 1), // 退出消息
+		Conn:       conn,
+		ConnID:     connID,
+		isClosed:   false,
+		MsgHandler: msghandler,
+		ExitChan:   make(chan bool, 1),
+		msgChan:    make(chan []byte),
 	}
 	return c
 }
@@ -47,8 +49,7 @@ func (c *Connection) StartReader() {
 
 		//读取head，八字节
 		headData := make([]byte, dp.GetHeadLen())
-		_, err := c.Conn.Read(headData)
-		if err != nil {
+		if _, err := io.ReadFull(c.GetTCPConnection(), headData); err != nil {
 			fmt.Println("read head err:", err)
 			break
 		}
@@ -81,6 +82,27 @@ func (c *Connection) StartReader() {
 	}
 }
 
+// 专门发给客户端消息的模块
+func (c *Connection) StratWriter() {
+
+	fmt.Println("connID=", c.ConnID, " writer is running")
+	defer fmt.Println("connID=", c.ConnID, " writer exit")
+	//主要监控一个管道,不断阻塞等待，回写给用户
+	for {
+		select {
+		case <-c.ExitChan:
+			//如果当前链接已经关闭
+			return
+		case data := <-c.msgChan:
+			//有数据要写给客户端
+			if _, err := c.Conn.Write(data); err != nil {
+				fmt.Println("SendMsg err:", err)
+				return
+			}
+		}
+	}
+}
+
 // 启动链接 读写分离
 func (c *Connection) Start() {
 	fmt.Println("connID=", c.ConnID, " start")
@@ -88,18 +110,21 @@ func (c *Connection) Start() {
 	// 启动从当前读数据的业务
 	go c.StartReader()
 	//TODO 启动从当前写数据的业务
+	go c.StratWriter()
 }
 
 // 停止链接
 func (c *Connection) Stop() {
 	fmt.Println("connID=", c.ConnID, " stop")
-
 	//如果连接已经关闭
 	if c.isClosed {
 		return
 	}
 	c.isClosed = true
+	//关闭socket链接
 	c.Conn.Close()
+	//告知Writer退出
+	c.ExitChan <- true
 	//回收资源
 	close(c.ExitChan)
 }
@@ -132,11 +157,12 @@ func (c *Connection) SendMsg(msgId uint32, data []byte) error {
 		fmt.Println("pack error msg id = ", msgId)
 		return errors.New("pack error msg")
 	}
-	//将data发送给客户端
-	if _, err := c.Conn.Write(binaryMsg); err != nil {
-		fmt.Println("write back buf err:", err)
-		return errors.New("conn Write error")
-	}
-
+	// //将data发送给客户端
+	// if _, err := c.Conn.Write(binaryMsg); err != nil {
+	// 	fmt.Println("write back buf err:", err)
+	// 	return errors.New("conn Write error")
+	// }
+	//将data发送给msgChan
+	c.msgChan <- binaryMsg
 	return nil
 }
