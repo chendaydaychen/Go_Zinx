@@ -26,14 +26,16 @@ func (s *Server) Start() {
 	fmt.Println("服务器开始启动...")
 
 	go func() {
-		// 获取一个TCP的Addr
+		// 0 开始消息队列和worker pool
+		s.MsgHandler.StartWorkerPool()
+		// 1 获取一个TCP的Addr
 		addr, err := net.ResolveTCPAddr(s.Version, fmt.Sprintf("%s:%d", s.IP, s.Port))
 		if err != nil {
 			fmt.Println("net.ResolveTCPAddr err:", err)
 			return
 		}
 
-		// 监听
+		// 2 监听
 		listener, err := net.ListenTCP(s.Version, addr)
 		if err != nil {
 			fmt.Println("net.ListenTCP err:", err)
@@ -43,7 +45,7 @@ func (s *Server) Start() {
 		var cid uint32 = 0
 		defer listener.Close()
 		fmt.Println("服务器启动成功，监听地址：", addr.String())
-		// 阻塞等待链接，处理客户端业务
+		// 3 阻塞等待链接，处理客户端业务
 		for {
 			conn, err := listener.AcceptTCP()
 			if err != nil {

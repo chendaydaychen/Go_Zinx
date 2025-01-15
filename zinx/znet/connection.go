@@ -1,6 +1,7 @@
 package znet
 
 import (
+	"Zinx/zinx/utils"
 	"Zinx/zinx/ziface"
 	"errors"
 	"fmt"
@@ -14,7 +15,7 @@ type Connection struct {
 	isClosed   bool              // 链接是否关闭
 	ExitChan   chan bool         // 退出信号(由Reader告知Writer)
 	msgChan    chan []byte       // 无缓冲消息队列
-	MsgHandler ziface.IMsgHandle // 路由
+	MsgHandler ziface.IMsgHandle // 消息处理模块
 }
 
 // 初始化链接模块的方法
@@ -77,8 +78,13 @@ func (c *Connection) StartReader() {
 			conn: c,
 			msg:  msg,
 		}
-		// 将buf数据传递给router，调用路由方法，从路由中找到注册绑定的的Conn对应router
-		go c.MsgHandler.DoMsgHandler(req)
+		if utils.GlobalObject.WorkerPoolSize > 0 {
+			//已经启动工作池机制，将消息交给Worker处理
+			c.MsgHandler.SendMsgToTaskQueue(req)
+		} else {
+			//从路由中找到注册绑定的Conn对应的router，然后执行router的Handle方法
+			go c.MsgHandler.DoMsgHandler(req)
+		}
 	}
 }
 
