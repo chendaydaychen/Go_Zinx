@@ -1,0 +1,4 @@
+syntax="proto3";                //Proto协议
+package pb;                     //当前包名
+option go_package = ".;pb";     //生成到当前目录，包名为 pb
+option csharp_namespace="Pb";   //给C#提供的选项
